@@ -28,7 +28,7 @@ M8_washer_diam = 15.8;
 
 //-- Distance between the left motor end and the right side of the threaded rod
 x_motor_rod_space = 6;
-xrod_pos = [nema17_size[X]/2 + x_motor_rod_space + M8_washer_diam/2, 0, 0];
+xrod_pos = [nema17_size[X]/2 + x_motor_rod_space + M8_washer_diam/2, 0, -2];
 
 //-- Distance from the bottom to the x-theaded rot nut
 x_threaded_rod_diam = 8;
@@ -55,7 +55,7 @@ rf_size = [2*(rf_wall_th + rf_screw_clearance + rf_screw_head_diam/2),
 //-- General basic x-end parameters
 x_end_size = [nema17_size[X] + 2*(x_motor_rod_space + M8_washer_diam +1 + rf_size[X]), 
               motor_top_clearance + nema17_size[Y] + M8_washer_diam/2 + x_threaded_rod_bottom_clearance, 
-              10];
+              12];
               
 x_end_pos = [0, -x_end_size[Y]/2 + nema17_size[Y]/2 + motor_top_clearance, 0];              
 
@@ -156,36 +156,13 @@ module reinforcement()
 
 }
 
-co1_pos = [-co1_size[X]/2 - nema17_size[Y]/2 -nema17_clearance -nema17_clearance2,
-           co1_size[Y]/2,
-           0];
-
-
-rotate([90,0,0]) {
-
-//-- Left axis smooth bar
-translate(-xrod_pos)
-  cylinder(r = 8/2, h = 70, center = true, $fn = 50);
-
-  //--- Left axis threaded rod
-translate([-x_threaded_rod_pos[X], -x_threaded_rod_pos[Y], 0])
-  cylinder(r = 8/2, h = 70, center = true, $fn = 50);
-  
-
-//-- Manually adjutable build plate
-//build_plate(3,200,200);
-
-translate([0, 0, 0])
-rotate([180, 0, 0])
-nema17_motor();
-   
-
-//-- Main plate
-difference() {
+module main_plate()
+{
+  difference() {
 
   //-- Base plate
   translate(x_end_pos)
-  color("blue")
+  //color("blue")
     cube(x_end_size, center = true);
 
   //-- Upper-left cutout
@@ -209,6 +186,94 @@ difference() {
   nema17_drills(l = x_end_size[Z]+extra);
 
 }
+}
+
+module ring(r, dr, h)
+{
+  difference() {
+   cylinder(r = r + dr, h = h, center = true);
+   cylinder(r = r, h = h + extra, center = true);
+ }  
+}
+
+
+
+co1_pos = [-co1_size[X]/2 - nema17_size[Y]/2 -nema17_clearance -nema17_clearance2,
+           co1_size[Y]/2,
+           0];
+
+           
+ pos1 = co1_pos;
+
+ //-- Lateral triangles
+ ec1 = [ [- nema17_size[Y]/2 -nema17_clearance -nema17_clearance2,
+          0,
+          -x_end_size[Z]/2 + motor_plate_th/2], [0,0,1], 0];
+ en1 = [ ec1[0], [-1,1,0], 0];
+ 
+ ec2 = [ [-ec1[0][X],
+          0,
+          -x_end_size[Z]/2 + motor_plate_th/2], [0,0,1], 0];
+ en2 = [ ec2[0], [1,1,0], 0];
+  
+  //-- Debug
+  //connector(ec1);
+  //connector(en1);
+  //connector(ec2);
+  //connector(en2);           
+           
+           
+rotate([0,0,0]) {
+  
+
+//-- Manually adjutable build plate
+//build_plate(3,200,200);
+
+*translate([0, 0, nema17_size[Z]/2- x_end_size[Z]/2 + motor_plate_th])
+rotate([180, 0, 0])
+nema17_motor();
+   
+difference() {
+   union() {
+    //-- Main plate
+    main_plate();
+
+    //-- Mail plate lateral triangles
+    bconcave_corner_attach(ec1, en1, l=motor_plate_th,   
+			  cr=nema17_size[Y]/2  +nema17_clearance + nema17_clearance2, 
+			  cres=0, th=0.01);
+    
+    bconcave_corner_attach(ec2, en2, l=motor_plate_th,   
+			  cr=nema17_size[Y]/2  +nema17_clearance + nema17_clearance2, 
+			  cres=0, th=0.01);
+  } 
+  
+  //-- Left axis smooth bar
+translate([-xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
+  cylinder(r = 8/2, h = x_end_size[Z], center = true, $fn = 50);
+
+  //--- Left axis threaded rod
+translate([-x_threaded_rod_pos[X], -x_threaded_rod_pos[Y], 0])
+  cylinder(r = 8/2, h = 70, center = true, $fn = 50);
+  
+  //-- Right axis smooth bar
+translate([xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
+  cylinder(r = 8/2, h = x_end_size[Z], center = true, $fn = 50);
+  
+//--- Right axis threaded rod
+translate([x_threaded_rod_pos[X], -x_threaded_rod_pos[Y], 0])
+  cylinder(r = 8/2, h = 70, center = true, $fn = 50);  
+
+  //-- Left zip tie hole
+  translate([-xrod_pos[X], xrod_pos[Y], 1])
+    ring(r = 8/2 + 1, dr = 1.5, h =3);
+  
+  //-- Right zip tie hole
+  translate([xrod_pos[X], xrod_pos[Y], 1])
+    ring(r = 8/2 + 1, dr = 1.5, h =3);
+  
+}
+
 
 
  translate(x_end_pos) {   
@@ -220,6 +285,7 @@ difference() {
   translate([-rf_pos[X], rf_pos[Y], rf_pos[Z]])
     reinforcement();
 }
+
 
 }
 
