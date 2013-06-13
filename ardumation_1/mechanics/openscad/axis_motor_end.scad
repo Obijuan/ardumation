@@ -31,11 +31,12 @@ x_motor_rod_space = 6;
 xrod_pos = [nema17_size[X]/2 + x_motor_rod_space + M8_washer_diam/2, 0, -2];
 
 //-- Distance from the bottom to the x-theaded rot nut
-x_threaded_rod_diam = 8;
+x_threaded_rod_diam = 8.4;
 x_threaded_rod_bottom_clearance = 3;
 motor_top_clearance = 3 + nema17_clearance;
 x_threaded_rod_pos = [ xrod_pos[X], nema17_size[Y]/2, 0];
 motor_plate_th = 4;
+x_smooth_rod_diam = 8.4;
 
 //-- Lateral reinforcements              
 rf_wall_th = 3;
@@ -60,11 +61,13 @@ x_end_size = [nema17_size[X] + 2*(x_motor_rod_space + M8_washer_diam +1 + rf_siz
 x_end_pos = [0, -x_end_size[Y]/2 + nema17_size[Y]/2 + motor_top_clearance, 0];              
 
 
-rf_pos = [rf_size[X]/2 -x_end_size[X]/2, 
+rf_pos = [rf_size[X]/2 -x_end_size[X]/2+0.01, 
           rf_size[Y]/2 - x_end_size[Y]/2, 
-          rf_size[Z]/2 + x_end_size[Z]/2];
+          rf_size[Z]/2 + x_end_size[Z]/2-0.01];
               
-
+//-- Bearing
+bearing_diam = 22+0.5;
+              
 //-- Main plate cutouts
 co1_size = [x_end_size[X]/2, x_end_size[Y]/2, x_end_size[Z]+extra];
               
@@ -113,6 +116,14 @@ module nema17_motor(clearance = 0, only_body=false)
   
 }
 
+module ring(r, dr, h)
+{
+  difference() {
+   cylinder(r = r + dr, h = h, center = true);
+   cylinder(r = r, h = h + extra, center = true);
+ }  
+}
+
 
 module reinforcement()
 {
@@ -156,45 +167,51 @@ module reinforcement()
 
 }
 
-module main_plate()
+module main_plate(motor = true)
 {
   difference() {
 
-  //-- Base plate
-  translate(x_end_pos)
-  //color("blue")
-    cube(x_end_size, center = true);
+    //-- Base plate
+    translate(x_end_pos)
+    //color("blue")
+      cube(x_end_size, center = true);
 
-  //-- Upper-left cutout
-  translate(co1_pos)           
-    cube(co1_size, center = true);   
+    //-- Upper-left cutout
+    translate(co1_pos)           
+      cube(co1_size, center = true);   
 
-  //-- Upper-right cutout
-  translate([-co1_pos[X], co1_pos[Y], co1_pos[Z]])
-    cube(co1_size, center = true);
+    //-- Upper-right cutout
+    translate([-co1_pos[X], co1_pos[Y], co1_pos[Z]])
+      cube(co1_size, center = true);
+      
     
-  //-- Room for the motor
-  translate([0, 0, nema17_size[Z]/2 - x_end_size[Z]/2 + motor_plate_th])
-  rotate([180, 0, 0])
-  nema17_motor(clearance = nema17_clearance, only_body = true);
+    
+    if (motor == true) {
+    
+    //-- Room for the motor
+    translate([0, 0, nema17_size[Z]/2 - x_end_size[Z]/2 + motor_plate_th])
+    rotate([180, 0, 0])
+    nema17_motor(clearance = nema17_clearance, only_body = true);
+    
+    //-- Base shaft
+    cylinder(r = nema17_shaft_base_diam/2 + nema17_clearance/2, 
+	      h = x_end_size[Z]+extra, center = true, $fn = 100);
+	      
+      //-- Motor drills    
+      nema17_drills(l = x_end_size[Z]+extra);
+    }
+    else {
+      //-- 608 bearing
+      cylinder(r = bearing_diam/2, h = x_end_size[Z] + extra, center = true);
+      
+      translate([0,0, motor_plate_th])
+      ring (r = bearing_diam/2 + 3, dr = 6, h = x_end_size[Z]); 
+    }
+  }
   
-  //-- Base shaft
-  cylinder(r = nema17_shaft_base_diam/2 + nema17_clearance/2, 
-            h = x_end_size[Z]+extra, center = true, $fn = 100);
-            
-  //-- Motor drills    
-  nema17_drills(l = x_end_size[Z]+extra);
-
-}
+  
 }
 
-module ring(r, dr, h)
-{
-  difference() {
-   cylinder(r = r + dr, h = h, center = true);
-   cylinder(r = r, h = h + extra, center = true);
- }  
-}
 
 
 
@@ -206,13 +223,13 @@ co1_pos = [-co1_size[X]/2 - nema17_size[Y]/2 -nema17_clearance -nema17_clearance
  pos1 = co1_pos;
 
  //-- Lateral triangles
- ec1 = [ [- nema17_size[Y]/2 -nema17_clearance -nema17_clearance2,
-          0,
+ ec1 = [ [- nema17_size[Y]/2 -nema17_clearance -nema17_clearance2 +0.05,
+          -0.05,
           -x_end_size[Z]/2 + motor_plate_th/2], [0,0,1], 0];
  en1 = [ ec1[0], [-1,1,0], 0];
  
  ec2 = [ [-ec1[0][X],
-          0,
+          -0.05,
           -x_end_size[Z]/2 + motor_plate_th/2], [0,0,1], 0];
  en2 = [ ec2[0], [1,1,0], 0];
   
@@ -222,9 +239,67 @@ co1_pos = [-co1_size[X]/2 - nema17_size[Y]/2 -nema17_clearance -nema17_clearance
   //connector(ec2);
   //connector(en2);           
            
+
+module x_motor_end(motor = true)
+{
+  difference() {
+    union() {
+      //-- Main plate
+      main_plate(motor = motor);
+
+      //-- Mail plate lateral triangles
+      bconcave_corner_attach(ec1, en1, l=motor_plate_th,   
+			    cr=nema17_size[Y]/2  +nema17_clearance + nema17_clearance2, 
+			    cres=0, th=0.01);
+      
+      bconcave_corner_attach(ec2, en2, l=motor_plate_th,   
+			    cr=nema17_size[Y]/2  +nema17_clearance + nema17_clearance2, 
+			    cres=0, th=0.01);
+    } 
+    
+    //-- Left axis smooth bar
+  translate([-xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
+    cylinder(r = x_smooth_rod_diam/2, h = x_end_size[Z], center = true, $fn = 50);
+
+    //--- Left axis threaded rod
+  translate([-x_threaded_rod_pos[X], -x_threaded_rod_pos[Y], 0])
+    cylinder(r = x_threaded_rod_diam/2, h = 70, center = true, $fn = 50);
+    
+    //-- Right axis smooth bar
+  translate([xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
+    cylinder(r = x_smooth_rod_diam/2, h = x_end_size[Z], center = true, $fn = 50);
+    
+  //--- Right axis threaded rod
+  translate([x_threaded_rod_pos[X], -x_threaded_rod_pos[Y], 0])
+    cylinder(r = x_threaded_rod_diam/2, h = 70, center = true, $fn = 50);  
+
+    //-- Left zip tie hole
+    translate([-xrod_pos[X], xrod_pos[Y], 1])
+      ring(r = x_smooth_rod_diam/2 + 1, dr = 1.5, h =3);
+    
+    //-- Right zip tie hole
+    translate([xrod_pos[X], xrod_pos[Y], 1])
+      ring(r = x_smooth_rod_diam/2 + 1, dr = 1.5, h =3);
+    
+  }
+
+
+
+  translate(x_end_pos) {   
+    //-- Left reinforcement  
+    translate(rf_pos)
+      reinforcement();
+    
+    //-- Right reinforcement
+    translate([-rf_pos[X], rf_pos[Y], rf_pos[Z]])
+      reinforcement();
+  }
+
+
+}
+
            
 rotate([0,0,0]) {
-  
 
 //-- Manually adjutable build plate
 //build_plate(3,200,200);
@@ -233,62 +308,8 @@ rotate([0,0,0]) {
 rotate([180, 0, 0])
 nema17_motor();
    
-difference() {
-   union() {
-    //-- Main plate
-    main_plate();
-
-    //-- Mail plate lateral triangles
-    bconcave_corner_attach(ec1, en1, l=motor_plate_th,   
-			  cr=nema17_size[Y]/2  +nema17_clearance + nema17_clearance2, 
-			  cres=0, th=0.01);
-    
-    bconcave_corner_attach(ec2, en2, l=motor_plate_th,   
-			  cr=nema17_size[Y]/2  +nema17_clearance + nema17_clearance2, 
-			  cres=0, th=0.01);
-  } 
-  
-  //-- Left axis smooth bar
-translate([-xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
-  cylinder(r = 8/2, h = x_end_size[Z], center = true, $fn = 50);
-
-  //--- Left axis threaded rod
-translate([-x_threaded_rod_pos[X], -x_threaded_rod_pos[Y], 0])
-  cylinder(r = 8/2, h = 70, center = true, $fn = 50);
-  
-  //-- Right axis smooth bar
-translate([xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
-  cylinder(r = 8/2, h = x_end_size[Z], center = true, $fn = 50);
-  
-//--- Right axis threaded rod
-translate([x_threaded_rod_pos[X], -x_threaded_rod_pos[Y], 0])
-  cylinder(r = 8/2, h = 70, center = true, $fn = 50);  
-
-  //-- Left zip tie hole
-  translate([-xrod_pos[X], xrod_pos[Y], 1])
-    ring(r = 8/2 + 1, dr = 1.5, h =3);
-  
-  //-- Right zip tie hole
-  translate([xrod_pos[X], xrod_pos[Y], 1])
-    ring(r = 8/2 + 1, dr = 1.5, h =3);
-  
+  x_motor_end(motor = true); 
 }
-
-
-
- translate(x_end_pos) {   
-  //-- Left reinforcement  
-  translate(rf_pos)
-    reinforcement();
-  
-  //-- Right reinforcement
-  translate([-rf_pos[X], rf_pos[Y], rf_pos[Z]])
-    reinforcement();
-}
-
-
-}
-
 
 
 
