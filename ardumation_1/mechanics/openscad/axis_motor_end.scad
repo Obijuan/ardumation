@@ -25,18 +25,27 @@ nema17_drill_radial_dist = 18  + nema17_drill_diam/2 + nema17_shaft_diam/2;
 
 //-- nuts and ohter stuff
 M8_washer_diam = 15.8; 
+M8_nut_diam = 15;
+M8_nut_h = 6.5;
+
+M3_screw_diam = 3.2;
+M3_nut_h = 2.5;
+M3_nut_diam = 6.4;
+
 
 //-- Distance between the left motor end and the right side of the threaded rod
 x_motor_rod_space = 6;
 xrod_pos = [nema17_size[X]/2 + x_motor_rod_space + M8_washer_diam/2, 0, -2];
 
+echo("X_rod: ", xrod_pos[X]);
+
 //-- Distance from the bottom to the x-theaded rot nut
-x_threaded_rod_diam = 8.4;
+x_threaded_rod_diam = 8.5;
 x_threaded_rod_bottom_clearance = 3;
 motor_top_clearance = 3 + nema17_clearance;
 x_threaded_rod_pos = [ xrod_pos[X], nema17_size[Y]/2, 0];
 motor_plate_th = 4;
-x_smooth_rod_diam = 8.4;
+x_smooth_rod_diam = 8.5;
 
 //-- Lateral reinforcements              
 rf_wall_th = 3;
@@ -298,8 +307,32 @@ module x_motor_end(motor = true)
 
 }
 
+
+
+//--- Embebbed nut part
+emb_nut_size = [35, M8_nut_h + 4, 20];
+
+module embebbed_nut_part()
+{
+  //-- body
+  cube(emb_nut_size, center = true);
+
+  pos3 = [0, emb_nut_size[Y]/2, -emb_nut_size[Z]/2];
+
+ ec3 = [ pos3, [1,0,0], 0];
+  en3 = [ ec3[0], [0,1,1], 0];
+  //ec2 = [ [-pos[X], pos[Y], pos[Z]], [1,0,0], 0];
+  //en2 = [ ec2[0], [0,1,1], 0];
+  
+  //-- Debug
+  //connector(ec3);
+  //connector(en3);
+
+bconcave_corner_attach(ec3, en3, l = M8_nut_diam, cr=emb_nut_size[Z], cres=0, th=0.01);
+}
+
            
-rotate([0,0,0]) {
+*rotate([0,0,0]) {
 
 //-- Manually adjutable build plate
 //build_plate(3,200,200);
@@ -312,6 +345,78 @@ nema17_motor();
 }
 
 
+//-- Right bearing end
+*x_motor_end(motor = false); 
+
+
+//----------------- x carriage -----------------------
+
+lm8uu_diam = 15;
+lm8uu_len = 24;
+plate_clearance = [8, 4];
+
+x_plate_size = [lm8uu_len + 2*plate_clearance[X], 
+                2*(xrod_pos[X] + lm8uu_diam/2 + 2 + plate_clearance[Y]), 
+                5];
+                
+
+
+//-- Distance between the center of the smooth rods
+rods_distance = x_rod[X]*2;
+
+*translate([0, xrod_pos[X]])
+rotate([0, 90, 0])
+cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true, $fn=50);
+
+*translate([0, -xrod_pos[X]])
+rotate([0, 90, 0])
+cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true, $fn=50);
+
+*color("blue")
+cube(x_plate_size, center = true);
+
+
+drill_pos = [-emb_nut_size[X]/2 + emb_nut_size[X]/8, 0, 0];
+
+
+
+
+difference() {
+
+  //-- Main body
+  embebbed_nut_part();
+
+  //-- M8 drill
+  rotate([90, 0, 0])
+    teardrop(r = x_threaded_rod_diam/2 + 0.2, h = 2*(emb_nut_size[Y] + emb_nut_size[Z]));
+  
+  //-- Embebbed nut
+  translate([0, -4])
+    rotate([90, 0, 0])
+      cylinder(r = M8_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);  
+    
+  //-- Left drill  
+  translate(drill_pos)
+    rotate([90, 0, 0])
+      teardrop (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra);
+      
+  //-- Right drill
+  translate(-drill_pos)
+    rotate([90, 0, 0])
+      teardrop (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra);
+  
+  translate([0, emb_nut_size[Y] - M3_nut_h,0])
+translate(drill_pos)
+rotate([90,0,0])
+cylinder(r = M3_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);
+
+translate([0, emb_nut_size[Y] - M3_nut_h,0])
+translate(-drill_pos)
+rotate([90,0,0])
+cylinder(r = M3_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);
+  
+    
+}
 
 
 
