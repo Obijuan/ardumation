@@ -311,8 +311,10 @@ module x_motor_end(motor = true)
 
 //--- Embebbed nut part
 emb_nut_size = [35, M8_nut_h + 4, 20];
+clamp_drill_pos = [-emb_nut_size[X]/2 + emb_nut_size[X]/8, 0, 0];
 
-module embebbed_nut_part()
+
+module embebbed_nut_part_basic()
 {
   //-- body
   cube(emb_nut_size, center = true);
@@ -328,10 +330,163 @@ module embebbed_nut_part()
   //connector(ec3);
   //connector(en3);
 
-bconcave_corner_attach(ec3, en3, l = M8_nut_diam, cr=emb_nut_size[Z], cres=0, th=0.01);
+  bconcave_corner_attach(ec3, en3, l = M8_nut_diam, cr=emb_nut_size[Z], cres=0, th=0.05);
 }
 
-           
+
+
+module embebbed_nut_part()
+{
+
+
+  difference() {
+
+  //-- Main body
+  embebbed_nut_part_basic();
+
+  //-- M8 drill
+  rotate([90, 0, 0])
+    teardrop(r = x_threaded_rod_diam/2 + 0.2, h = 2*(emb_nut_size[Y] + emb_nut_size[Z]));
+  
+  //-- Embebbed nut
+  translate([0, -4])
+    rotate([90, 0, 0])
+      cylinder(r = M8_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);  
+  
+  
+  //------- Drills for the clamp
+  //-- Left drill  
+  translate(clamp_drill_pos)
+    rotate([90, 0, 0])
+      teardrop (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra);
+      
+  //-- Right drill
+  translate(-clamp_drill_pos)
+    rotate([90, 0, 0])
+      teardrop (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra);
+  
+  //-- Room for the embbebed nuts
+  translate([0, emb_nut_size[Y] - M3_nut_h,0])
+  translate(clamp_drill_pos)
+  rotate([90,0,0])
+  cylinder(r = M3_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);
+
+  translate([0, emb_nut_size[Y] - M3_nut_h,0])
+  translate(-clamp_drill_pos)
+  rotate([90,0,0])
+  cylinder(r = M3_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);
+  
+}
+
+
+}
+
+module nut_clamp()
+{
+
+  rotate([90, 0, 0])
+  difference() {
+    cube([emb_nut_size[X], 5, emb_nut_size[Z]], center = true);
+    
+    //-- M8 drill
+    rotate([90, 0, 0])
+    cylinder(r = x_threaded_rod_diam/2 + 1.2, h = 2*(emb_nut_size[Y] + emb_nut_size[Z]), center = true);
+
+    translate(clamp_drill_pos)
+      rotate([90, 0, 0])
+        cylinder (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra, center = true);
+      
+    //-- Right drill
+    translate(-clamp_drill_pos)
+      rotate([90, 0, 0])
+        cylinder (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra, center=true);
+  }      
+}
+
+
+//----------------- x carriage -----------------------
+lm8uu_diam = 15;
+lm8uu_len = 24;
+plate_clearance = [8, 4];
+x_carriage_z_rods_xdis = 5;
+x_plate_th = 5;
+
+//-- cutout for the lm8uu
+co_lm8uu_size = [lm8uu_len + 2, lm8uu_diam/2 + 2];
+lm8uu_clearance = 2;
+
+co_zip_tie_size = [5 ,1.5, x_plate_th + extra];
+co_zip_tie_pos = [co_lm8uu_size[X]/4, co_zip_tie_size[Y]/2 + co_lm8uu_size[Y]/2 + lm8uu_clearance ,0];
+
+x_plate_size = [co_lm8uu_size[X] + 2*plate_clearance[X],
+                2*(xrod_pos[X] + co_lm8uu_size[Y]/2 + lm8uu_clearance + co_zip_tie_size[Y] + plate_clearance[Y]), 
+                x_plate_th];
+
+
+
+                
+x_carriage_z_rods_pos = [x_plate_size[X]/2 - x_threaded_rod_diam/2 - x_carriage_z_rods_xdis, 
+                          x_plate_size[Y]/5,
+                          0];            
+
+
+
+                          
+                          
+module cutout_lm8uu()
+{
+
+  bcube([co_lm8uu_size[X], co_lm8uu_size[Y], x_plate_size[Z] + extra], cr = 2, cres = 4);
+
+  //-- Zip tie holes
+    translate(co_zip_tie_pos)
+      cube(co_zip_tie_size, center = true);
+      
+  translate([-co_zip_tie_pos[X], co_zip_tie_pos[Y], co_zip_tie_pos[Z]])
+      cube(co_zip_tie_size, center = true);    
+      
+  translate([-co_zip_tie_pos[X], -co_zip_tie_pos[Y], co_zip_tie_pos[Z]])
+      cube(co_zip_tie_size, center = true);   
+      
+  translate([co_zip_tie_pos[X], -co_zip_tie_pos[Y], co_zip_tie_pos[Z]])
+      cube(co_zip_tie_size, center = true);     
+      
+}
+                          
+module x_carriage()
+{
+  difference() {                          
+
+  union() {
+//-- Main plate
+bcube(x_plate_size, cr = 2, cres = 4);
+
+translate([emb_nut_size[Y]/2 - x_plate_size[X]/2, 0, emb_nut_size[Z]/2 + x_plate_size[Z]/2])
+rotate([0,0,-90])
+embebbed_nut_part();
+}
+                
+//-- lm8uu cutouts
+translate([0, xrod_pos[X],0])
+cutout_lm8uu();
+
+translate([0, -xrod_pos[X],0])
+cutout_lm8uu();
+
+//-- Vertical M8 threaded rods
+translate(x_carriage_z_rods_pos)
+cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+
+
+translate([x_carriage_z_rods_pos[X], -x_carriage_z_rods_pos[Y], x_carriage_z_rods_pos[Z]])
+cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+
+}
+}
+
+*cutout_lm8uu();
+
+
 *rotate([0,0,0]) {
 
 //-- Manually adjutable build plate
@@ -349,75 +504,12 @@ nema17_motor();
 *x_motor_end(motor = false); 
 
 
-//----------------- x carriage -----------------------
-
-lm8uu_diam = 15;
-lm8uu_len = 24;
-plate_clearance = [8, 4];
-
-x_plate_size = [lm8uu_len + 2*plate_clearance[X], 
-                2*(xrod_pos[X] + lm8uu_diam/2 + 2 + plate_clearance[Y]), 
-                5];
-                
-
-
-//-- Distance between the center of the smooth rods
-rods_distance = x_rod[X]*2;
-
-*translate([0, xrod_pos[X]])
-rotate([0, 90, 0])
-cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true, $fn=50);
-
-*translate([0, -xrod_pos[X]])
-rotate([0, 90, 0])
-cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true, $fn=50);
-
-*color("blue")
-cube(x_plate_size, center = true);
-
-
-drill_pos = [-emb_nut_size[X]/2 + emb_nut_size[X]/8, 0, 0];
+*x_carriage();
 
 
 
+nut_clamp();
 
-difference() {
-
-  //-- Main body
-  embebbed_nut_part();
-
-  //-- M8 drill
-  rotate([90, 0, 0])
-    teardrop(r = x_threaded_rod_diam/2 + 0.2, h = 2*(emb_nut_size[Y] + emb_nut_size[Z]));
-  
-  //-- Embebbed nut
-  translate([0, -4])
-    rotate([90, 0, 0])
-      cylinder(r = M8_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);  
-    
-  //-- Left drill  
-  translate(drill_pos)
-    rotate([90, 0, 0])
-      teardrop (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra);
       
-  //-- Right drill
-  translate(-drill_pos)
-    rotate([90, 0, 0])
-      teardrop (r = M3_screw_diam/2, h = emb_nut_size[Y] + extra);
-  
-  translate([0, emb_nut_size[Y] - M3_nut_h,0])
-translate(drill_pos)
-rotate([90,0,0])
-cylinder(r = M3_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);
-
-translate([0, emb_nut_size[Y] - M3_nut_h,0])
-translate(-drill_pos)
-rotate([90,0,0])
-cylinder(r = M3_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);
-  
-    
-}
-
-
-
-
+      
+      
