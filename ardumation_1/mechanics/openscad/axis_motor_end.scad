@@ -25,7 +25,7 @@ nema17_drill_radial_dist = 18  + nema17_drill_diam/2 + nema17_shaft_diam/2;
 
 //-- nuts and ohter stuff
 M8_washer_diam = 15.8; 
-M8_nut_diam = 15;
+M8_nut_diam = 15.5;
 M8_nut_h = 6.5;
 
 M3_screw_diam = 3.2;
@@ -518,6 +518,134 @@ module x_carriage(show_bearings = false)
       
 }
 
+//--  Hand...
+hand_clearance = 4;
+hand_size = [2*(x_carriage_z_rods_pos[Y] + M8_washer_diam/2 + hand_clearance), 55, 5];
+micro_usb_size = [14, 27, 9];
+micro_usb_wall_th = [2 + M3_nut_diam + 2, 3, 0];
+micro_usb_box_size = [micro_usb_size[X] + 2*micro_usb_wall_th[X],
+                      micro_usb_size[Y] + micro_usb_wall_th[Y],
+                      micro_usb_size[Z]];
+                      
+micro_usb_pos =  [0, 
+                  -micro_usb_box_size[Y]/2 + hand_size[Y]/2,
+                  micro_usb_box_size[Z]/2 + hand_size[Z]/2 -0.01];
+
+co_size = [micro_usb_size[X], micro_usb_size[Y]+extra, micro_usb_size[Z]+extra];
+co_zip = [co_zip_tie_size[Y], 
+          co_zip_tie_size[X], 
+          2*(micro_usb_size[Z] + hand_size[Z]) + extra]; 
+co_zip_pos = [co_zip_tie_size[Y]/2 + micro_usb_size[X]/2 - 0.05,
+              co_zip_tie_size[X]/2,0];  
+              
+micro_usb_drill_pos = [- (micro_usb_box_size[X]/4 - micro_usb_size[X]/4) + (micro_usb_box_size[X])/2, 
+            micro_usb_size[Y]/4, 0];
+                      
+module micro_usb_box()
+{
+
+  difference() {
+    cube(micro_usb_box_size, center = true);
+  
+    translate([0,co_size[Y]/2 - micro_usb_box_size[Y]/2 + micro_usb_wall_th[Y],0])
+    cube(co_size, center = true);
+    
+  }  
+  
+}
+ 
+module micro_usb_hand()
+{
+  nut_drill_h = M3_nut_h + extra;
+  cap_h = 0.4;
+  cap_pos = [0, 0, cap_h/2 - hand_size[Z]/2 + M3_nut_h ];
+
+  difference() {
+ 
+    //-- Base + micro usb box
+    union() {
+    
+      //-- Base
+      bcube(hand_size, cr = 2, cres = 4); 
+      
+    //--micro USB box
+      translate([0, 
+	      -micro_usb_box_size[Y]/2 + hand_size[Y]/2,
+	      micro_usb_box_size[Z]/2 + hand_size[Z]/2 -0.01])
+	      micro_usb_box();
+    }
+    
+    //-- z-Rods
+    translate([0, -hand_size[Y]/2 + M8_washer_diam/2 + hand_clearance, 0]) {
+      translate([x_carriage_z_rods_pos[Y], 0, 0])
+	cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+	
+      translate([-x_carriage_z_rods_pos[Y], 0, 0])
+	cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+    }  
+
+    //-- Zip tie holes
+    translate(micro_usb_pos)
+      translate(co_zip_pos)
+	cube(co_zip, center = true);
+	
+    translate(micro_usb_pos)
+      translate([-co_zip_pos[X], co_zip_pos[Y], co_zip_pos[Z]])
+	cube(co_zip, center = true);    
+    
+    //-- Drills
+    translate(micro_usb_drill_pos)
+      cylinder(r = M3_screw_diam/2, h = 2*(micro_usb_size[Z] + hand_size[Z]), center = true);
+      
+    translate([-micro_usb_drill_pos[X], micro_usb_drill_pos[Y], micro_usb_drill_pos[Z]])
+      cylinder(r = M3_screw_diam/2, h = 2*(micro_usb_size[Z] + hand_size[Z]), center = true); 
+    
+   //-- Captive nuts
+    translate([0, 0, -nut_drill_h/2 - hand_size[Z]/2 + M3_nut_h])
+    translate(micro_usb_drill_pos)
+      cylinder(r = M3_nut_diam/2, h = nut_drill_h, center = true, $fn = 6); 
+      
+     translate([0, 0, -nut_drill_h/2 - hand_size[Z]/2 + M3_nut_h])
+    translate([-micro_usb_drill_pos[X], micro_usb_drill_pos[Y], micro_usb_drill_pos[Z]])
+      cylinder(r = M3_nut_diam/2, h = nut_drill_h, center = true, $fn = 6);   
+    
+  }  
+  
+  
+  //-- Caps for the drills (for printing ok the room for the embebbed nuts
+  translate(cap_pos)
+    translate(micro_usb_drill_pos)
+  cylinder(r = M3_screw_diam/2+0.1, h = cap_h, center = true, $fn = 6); 
+  
+  translate(cap_pos)
+    translate([-micro_usb_drill_pos[X], micro_usb_drill_pos[Y], micro_usb_drill_pos[Z]])
+  cylinder(r = M3_screw_diam/2+0.1, h = cap_h, center = true, $fn = 6); 
+    
+
+}
+      
+      
+micro_usb_clamp_size = [micro_usb_box_size[X],
+                        micro_usb_box_size[Y]/2 + micro_usb_wall_th[Y],
+                        3];      
+      
+module micro_usb_clamp()
+{
+  difference() {
+    translate([0, micro_usb_clamp_size[Y]/2 - micro_usb_wall_th[Y], 0])
+      cube(micro_usb_clamp_size, center = true);
+      
+    //-- Drills
+    translate(micro_usb_drill_pos)
+      cylinder(r = M3_screw_diam/2, h = 2*(micro_usb_size[Z] + hand_size[Z]), center = true);
+	
+    translate([-micro_usb_drill_pos[X], micro_usb_drill_pos[Y], micro_usb_drill_pos[Z]])
+      cylinder(r = M3_screw_diam/2, h = 2*(micro_usb_size[Z] + hand_size[Z]), center = true);   
+  }  
+}
+
+
+
 module assembly()
 {
   axis_len = 150;
@@ -568,7 +696,29 @@ module assembly()
   rotate([0, 0, 90])
   x_carriage();
   
+  //-- Hand...
+  color("blue")
+  //translate(micro_usb_drill_pos)
+  translate([0, hand_size[Y]/2 - M8_washer_diam/2 - hand_clearance, 0])
+    translate([0,x_carriage_z_rods_pos[X], 
+              hand_size[Z]/2 + x_carriage_smooth_bar_h + x_plate_size[Z] + 20 ])
+  micro_usb_hand();
+  
+  
+  //-- Vertical theaded rods
+  color("lightgray")
+  translate([x_carriage_z_rods_pos[Y], x_carriage_z_rods_pos[X], 20])
+  cylinder(r = x_threaded_rod_diam/2, h = 40, center = true, $fn = 50);
+  
+  color("lightgray")
+  translate([-x_carriage_z_rods_pos[Y], x_carriage_z_rods_pos[X], 20])
+  cylinder(r = x_threaded_rod_diam/2, h = 40, center = true, $fn = 50);
+  
 }
+
+
+
+
 
 //--- Parts for printing
 
@@ -588,5 +738,7 @@ module assembly()
 
 //-- Assembly!
 assembly();
-      
-      
+
+*micro_usb_hand();
+
+*micro_usb_clamp();
