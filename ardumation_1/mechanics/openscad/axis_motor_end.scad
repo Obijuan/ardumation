@@ -348,12 +348,6 @@ module embebbed_nut_part()
   rotate([90, 0, 0])
     teardrop(r = x_threaded_rod_diam/2 + 0.2, h = 2*(emb_nut_size[Y] + emb_nut_size[Z]));
   
-  //-- Embebbed nut
-  translate([0, -4])
-    rotate([90, 0, 0])
-      cylinder(r = M8_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);  
-  
-  
   //------- Drills for the clamp
   //-- Left drill  
   translate(clamp_drill_pos)
@@ -452,64 +446,147 @@ module cutout_lm8uu()
       cube(co_zip_tie_size, center = true);     
       
 }
-                          
-module x_carriage()
+ 
+ 
+module x_carriage_main_plate()
+{
+  difference() {
+    //-- Main plate
+    bcube(x_plate_size, cr = 2, cres = 4);
+  
+    //-- lm8uu cutouts
+    translate([0, xrod_pos[X],0])
+      cutout_lm8uu();
+
+    translate([0, -xrod_pos[X],0])
+      cutout_lm8uu();
+
+    //-- Vertical M8 threaded rods
+    translate(x_carriage_z_rods_pos)
+      cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+
+    translate([x_carriage_z_rods_pos[X], -x_carriage_z_rods_pos[Y], x_carriage_z_rods_pos[Z]])
+      cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+  }    
+  
+}
+ 
+//-- Distance between the center of the smooth rods until the bottom of the carriage
+//-- This distance is quite important for keeping the three rods aligned
+d = pow(lm8uu_diam/2, 2);
+c = pow(co_lm8uu_size[Y]/2, 2);
+x_carriage_smooth_bar_h = sqrt(pow(lm8uu_diam/2, 2) - pow(co_lm8uu_size[Y]/2, 2));
+
+module x_carriage(show_bearings = false)
 {
   difference() {                          
 
-  union() {
-//-- Main plate
-bcube(x_plate_size, cr = 2, cres = 4);
+    union() {
+    
+      //-- Main plate
+      translate([0, 0, - x_plate_size[Z]/2 - x_carriage_smooth_bar_h ])
+      x_carriage_main_plate();
 
-translate([emb_nut_size[Y]/2 - x_plate_size[X]/2, 0, emb_nut_size[Z]/2 + x_plate_size[Z]/2])
-rotate([0,0,-90])
-embebbed_nut_part();
-}
-                
-//-- lm8uu cutouts
-translate([0, xrod_pos[X],0])
-cutout_lm8uu();
-
-translate([0, -xrod_pos[X],0])
-cutout_lm8uu();
-
-//-- Vertical M8 threaded rods
-translate(x_carriage_z_rods_pos)
-cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
-
-
-translate([x_carriage_z_rods_pos[X], -x_carriage_z_rods_pos[Y], x_carriage_z_rods_pos[Z]])
-cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
-
-}
-}
-
-*cutout_lm8uu();
-
-
-*rotate([0,0,0]) {
-
-//-- Manually adjutable build plate
-//build_plate(3,200,200);
-
-*translate([0, 0, nema17_size[Z]/2- x_end_size[Z]/2 + motor_plate_th])
-rotate([180, 0, 0])
-nema17_motor();
-   
-  x_motor_end(motor = true); 
+      translate([emb_nut_size[Y]/2 - x_plate_size[X]/2, 0, 0])
+      rotate([0,0,-90])
+      embebbed_nut_part();
+    }   
+    
+    //-- Embebbed nut
+    translate([-emb_nut_size[Y]/2 - x_plate_size[X]/2 + 4, 0, 0 ])
+      rotate([0, 90, 0])
+        rotate([0,0,90])
+	cylinder(r = M8_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);   
+  
+  }
+  
+  if (show_bearings == true) {
+  
+    //-- Linear bearings lm8uu
+    color("gray")
+    translate([0,xrod_pos[X], 0])
+      rotate([0, 90, 0])
+	cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true);
+	
+    //-- Linear bearings lm8uu
+    color("gray")
+    translate([0,-xrod_pos[X], 0])
+      rotate([0, 90, 0])
+	cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true);
+      
+  }    
+      
 }
 
+module assembly()
+{
+  axis_len = 150;
 
-//-- Right bearing end
-*x_motor_end(motor = false); 
+  //-- x motor end (with the motor drawn)
+  translate([0, -axis_len/2, 0])
+  rotate([90, 0, 0]) {
+    x_motor_end(motor = true); 
+  
+    //-- Motor
+    translate([0, 0, nema17_size[Z]/2- x_end_size[Z]/2 + motor_plate_th])
+      rotate([180, 0, 0])
+        nema17_motor();    
+  }     
+  
+  //-- Smooth bars
+  rotate([90, 0, 0]) {
+  
+    color("lightgray")
+      translate([-xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
+        cylinder(r = x_smooth_rod_diam/2, h = axis_len, center = true, $fn = 50);
+    
+    color("lightgray")
+      translate([xrod_pos[X], xrod_pos[Y], xrod_pos[Z]])
+        cylinder(r = x_smooth_rod_diam/2, h = axis_len, center = true, $fn = 50);
+  }
+  
+  //-- Linear bearings lm8uu
+  color("gray")
+  translate([xrod_pos[X],0, 0])
+    rotate([90, 0, 0])
+      cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true);
+      
+  color("gray")
+  translate([-xrod_pos[X],0, 0])
+    rotate([90, 0, 0])
+      cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true);
+  
+  //-- Bearing end
+  translate([0, axis_len/2, 0])
+  rotate([0, 0, 180])
+  rotate([90, 0, 0])
+    x_motor_end(motor = false); 
+  
+  
+  //-- X-carriage
+  rotate([0, 180, 0])
+  rotate([0, 0, 90])
+  x_carriage();
+  
+}
+
+//--- Parts for printing
+
+//-- right: bearing end
+*x_motor_end(motor = false);
+
+//-- Left: motor end
+*x_motor_end(motor = true); 
 
 
+//-- Carriage
 *x_carriage();
 
+//-- Nut clamp
+*nut_clamp();
 
 
-nut_clamp();
-
-      
+//-- Assembly!
+assembly();
       
       
