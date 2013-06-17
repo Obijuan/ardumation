@@ -737,7 +737,7 @@ module assembly()
 
 
 //-- Assembly!
-*assembly();
+assembly();
 
 *micro_usb_hand();
 
