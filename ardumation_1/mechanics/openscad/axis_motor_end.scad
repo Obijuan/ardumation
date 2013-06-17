@@ -737,8 +737,8 @@ module assembly()
 
 
 //-- Assembly!
-assembly();
+*assembly();
 
 *micro_usb_hand();
 
-*micro_usb_clamp();
+micro_usb_clamp();
