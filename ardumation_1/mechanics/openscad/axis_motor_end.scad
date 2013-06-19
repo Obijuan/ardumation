@@ -518,6 +518,155 @@ module x_carriage(show_bearings = false)
       
 }
 
+//---- y carriage -------------
+y_plate_size = [x_plate_size[X], x_plate_size[Y] + 2*20, x_plate_size[Z]];
+y_carriage_z_rods_pos = [x_carriage_z_rods_pos[X], y_plate_size[Y]/2 -11, 0];
+
+
+module y_carriage_main_plate()
+{
+  difference() {
+    //-- Main plate
+    bcube(y_plate_size, cr = 2, cres = 4);
+  
+    //-- lm8uu cutouts
+    translate([0, xrod_pos[X],0])
+      cutout_lm8uu();
+
+    translate([0, -xrod_pos[X],0])
+      cutout_lm8uu();
+
+    //-- Vertical M8 threaded rods
+    translate(y_carriage_z_rods_pos)
+      cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+
+    translate([y_carriage_z_rods_pos[X], -y_carriage_z_rods_pos[Y], y_carriage_z_rods_pos[Z]])
+      cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+      
+    translate([-y_carriage_z_rods_pos[X], -y_carriage_z_rods_pos[Y], y_carriage_z_rods_pos[Z]])
+      cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+      
+    translate([-y_carriage_z_rods_pos[X], y_carriage_z_rods_pos[Y], y_carriage_z_rods_pos[Z]])
+      cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+  }  
+   
+}
+
+module y_carriage()
+{
+  difference() {                          
+
+    union() {
+    
+      //-- Main plate
+      translate([0, 0, - x_plate_size[Z]/2 - x_carriage_smooth_bar_h ])
+      y_carriage_main_plate();
+
+      translate([emb_nut_size[Y]/2 - x_plate_size[X]/2, 0, 0])
+      rotate([0,0,-90])
+      embebbed_nut_part();
+    }   
+    
+    //-- Embebbed nut
+    translate([-emb_nut_size[Y]/2 - x_plate_size[X]/2 + 4, 0, 0 ])
+      rotate([0, 90, 0])
+        rotate([0,0,90])
+	cylinder(r = M8_nut_diam/2, h = emb_nut_size[Y], center = true, $fn = 6);   
+  
+  }
+  
+  if (show_bearings == true) {
+  
+    //-- Linear bearings lm8uu
+    color("gray")
+    translate([0,xrod_pos[X], 0])
+      rotate([0, 90, 0])
+	cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true);
+	
+    //-- Linear bearings lm8uu
+    color("gray")
+    translate([0,-xrod_pos[X], 0])
+      rotate([0, 90, 0])
+	cylinder(r = lm8uu_diam/2, h = lm8uu_len, center = true);
+      
+  } 
+}
+
+//-- y_carriage.. second floor...
+y_carriage_2_screw_pos = [y_carriage_z_rods_pos[X],
+                          y_carriage_z_rods_pos[Y] - M3_screw_diam/2 - x_threaded_rod_diam/2 -10,
+                          y_carriage_z_rods_pos[Z]];
+
+
+module y_carriage_2()
+{
+  cyl_len = y_plate_size[Z] + extra;
+  
+  
+
+  difference() {
+      //-- Main plate
+      bcube(y_plate_size, cr = 2, cres = 4);
+
+      //-- Vertical M8 threaded rods
+      translate(y_carriage_z_rods_pos)
+	cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+
+      translate([y_carriage_z_rods_pos[X], -y_carriage_z_rods_pos[Y], y_carriage_z_rods_pos[Z]])
+	cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+	
+      translate([-y_carriage_z_rods_pos[X], -y_carriage_z_rods_pos[Y], y_carriage_z_rods_pos[Z]])
+	cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+	
+      translate([-y_carriage_z_rods_pos[X], y_carriage_z_rods_pos[Y], y_carriage_z_rods_pos[Z]])
+	cylinder(r = x_threaded_rod_diam/2, h = x_plate_size[Z] + extra, center = true, $fn=20);
+	
+      //-- M3 screws for attaching the tablet base
+      translate(y_carriage_2_screw_pos)
+	cylinder(r = M3_screw_diam/2, h = y_plate_size[Z] + extra, center = true, $fn=20);
+	
+      translate([y_carriage_2_screw_pos[X], y_carriage_2_screw_pos[Y], y_carriage_2_screw_pos[Z]] )
+	cylinder(r = M3_screw_diam/2, h = y_plate_size[Z] + extra, center = true, $fn=20);  
+	
+      translate([-y_carriage_2_screw_pos[X], y_carriage_2_screw_pos[Y], y_carriage_2_screw_pos[Z]] )
+	cylinder(r = M3_screw_diam/2, h = y_plate_size[Z] + extra, center = true, $fn=20);   
+	
+      translate([y_carriage_2_screw_pos[X], -y_carriage_2_screw_pos[Y], y_carriage_2_screw_pos[Z]] )
+	cylinder(r = M3_screw_diam/2, h = y_plate_size[Z] + extra, center = true, $fn=20);  
+	
+      translate([-y_carriage_2_screw_pos[X], -y_carriage_2_screw_pos[Y], y_carriage_2_screw_pos[Z]] )
+	cylinder(r = M3_screw_diam/2, h = y_plate_size[Z] + extra, center = true, $fn=20); 
+	
+      //-- M3 embebbed nuts
+      translate([0, 0, cyl_len/2 + y_plate_size[Z]/2 - M3_nut_h]) {
+    
+      translate(y_carriage_2_screw_pos) 
+        cylinder(r = M3_nut_diam/2, h = cyl_len, center = true, $fn=6); 
+      
+      translate([-y_carriage_2_screw_pos[X], y_carriage_2_screw_pos[Y], y_carriage_2_screw_pos[Z]] )
+        cylinder(r = M3_nut_diam/2, h = cyl_len, center = true, $fn=6); 
+        
+      translate([y_carriage_2_screw_pos[X], -y_carriage_2_screw_pos[Y], y_carriage_2_screw_pos[Z]] )
+        cylinder(r = M3_nut_diam/2, h = cyl_len, center = true, $fn=6); 
+        
+       translate([-y_carriage_2_screw_pos[X], -y_carriage_2_screw_pos[Y], y_carriage_2_screw_pos[Z]] )
+        cylinder(r = M3_nut_diam/2, h = cyl_len, center = true, $fn=6);  
+        
+        
+      }
+      
+      //-- Center cutout
+      bcube([2*y_carriage_2_screw_pos[X], 
+             2 * (y_carriage_2_screw_pos[Y] - M3_nut_diam/2 - 10) , 
+            y_plate_size[Z] + extra], cr=2, cres = 4);
+      
+    } 
+    
+    
+}
+
+
+
 //--  Hand...
 hand_clearance = 4;
 hand_size = [2*(x_carriage_z_rods_pos[Y] + M8_washer_diam/2 + hand_clearance), 55, 5];
@@ -717,9 +866,6 @@ module assembly()
 }
 
 
-
-
-
 //--- Parts for printing
 
 //-- right: bearing end
@@ -732,13 +878,15 @@ module assembly()
 //-- Carriage
 *x_carriage();
 
+y_carriage_2();
+
 //-- Nut clamp
 *nut_clamp();
 
 
 //-- Assembly!
-assembly();
+*assembly();
 
 *micro_usb_hand();
 
-micro_usb_clamp();
+*micro_usb_clamp();
