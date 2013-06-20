@@ -150,24 +150,13 @@ module corner_clamp()
 corner_clamp();
 
 //-- Bottom left corner
-tablet_corner();
+*tablet_corner();
 
 //-- Bottom right corner
-*mirror([1,0,0])
+mirror([1,0,0])
   tablet_corner();
 
   
-  
-/*  
-//-- Upper left corner
-*mirror([0,1,0])
-  tablet_corner();
-
-//-- Upper right corner
-*mirror([1,0,0])
-mirror([0,1,0])
-  tablet_corner();
-*/  
   
   
   
