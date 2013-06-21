@@ -146,9 +146,6 @@ module corner_clamp()
 //-- Corner clamp
 *corner_clamp();
 
-*mirror([1,0,0])
-corner_clamp();
-
 //-- Bottom left corner
 *tablet_corner();
 
